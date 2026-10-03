@@ -1,0 +1,10 @@
+{
+  "id": 4,
+  "name": "Red",
+  "genre": "Country pop",
+  "music_count": 16,
+  "releaseDate": "2012-10-22",
+  "llm_description": "Red is Taylor Swift's fourth studio album, a transitional record that expanded beyond country into pop, rock, and electronic styles, using the color red as a metaphor for the intense, chaotic emotions of a turbulent relationship.",
+  "llm_emotion_analysis": "Bittersweet and intense; heartbreak and nostalgia colored by fiery passion, anger, and the painful beauty of love lost.",
+  "llm_overall_public_reception": "Widely acclaimed; considered a career turning point toward pop superstardom, praised for its genre experimentation, though critics noted some tonal inconsistency."
+}

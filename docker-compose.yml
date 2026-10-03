@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: taylor
+      POSTGRES_PASSWORD: taylor
+      POSTGRES_DB: taylor
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taylor -d taylor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://taylor:taylor@db:5432/taylor
+      DATA_DIR: /data
+      CERT_DIR: /certs
+      JWT_SECRET: ${JWT_SECRET:-taylor-music-rating-secret-change-me}
+      HTTP_PORT: 8000
+      HTTPS_PORT: 8443
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+    restart: unless-stopped
+    volumes:
+      - ./data:/data:ro
+      - certs:/certs
+
+volumes:
+  pgdata:
+  certs:

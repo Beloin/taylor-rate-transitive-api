@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "name": "Taylor Swift",
+  "genre": "Country",
+  "music_count": 14,
+  "releaseDate": "2006-10-24",
+  "llm_description": "Taylor Swift's self-titled debut album, released when she was 16, established her as a precocious country singer-songwriter writing confessional songs about teenage romance, heartbreak, and small-town life, mostly co-written during her freshman year of high school.",
+  "llm_emotion_analysis": "Nostalgic and youthful; earnest, heart-on-sleeve romantic yearning mixed with wistful coming-of-age reflections.",
+  "llm_overall_public_reception": "Positive; praised for its mature songwriting beyond her years and launched a breakout career, earning multi-platinum certification and Grammy buzz."
+}

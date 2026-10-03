@@ -1,0 +1,37 @@
+@startuml DB
+
+entity Album {
+  * id: int <<natural>>  /** from index.json, e.g. 0013 -> 13 */
+  * name: varchar 255
+  * genre: varchar 255
+  * music_count: int
+  * releaseDate: date
+  * llm_description: varchar 500
+  * llm_emotion_analysis: varchar 255
+  * llm_overall_public_reception: varchar 255
+}
+
+entity Music {
+  * id: int <<natural>>  /** globally unique, from json */
+  * album_id: int <<FK>>
+  * name: varchar 255
+  * genre: varchar 255
+  * llm_description: varchar 500
+  * llm_emotion_analysis: varchar 255
+}
+
+entity Rate {
+ * id: int <<generated>>
+ * album_id: int <<FK>>  /** nullable */
+ * music_id: int <<FK>>  /** nullable */
+ * rater_name: varchar 255
+ * rate: int
+ * description: text
+ * is_generated: boolean
+}
+
+Album ||..|{ Music
+Album ||..o{ Rate
+Music ||..o{ Rate
+
+@enduml

@@ -1,0 +1,10 @@
+{
+  "id": 3,
+  "name": "Speak Now",
+  "genre": "Country pop",
+  "music_count": 14,
+  "releaseDate": "2010-10-25",
+  "llm_description": "Speak Now is Taylor Swift's third studio album, written entirely by herself without co-writers as a response to skeptics of her songwriting, featuring confessional storytelling and revenge fantasy narratives like Dear John and Mean.",
+  "llm_emotion_analysis": "Confessional and defiant; passionate regret, vindication, and romantic enchantment told with theatrical, dramatic intensity.",
+  "llm_overall_public_reception": "Very positive; debuted at number one with over one million first-week sales, and was praised for proving her self-sufficiency as a songwriter."
+}
