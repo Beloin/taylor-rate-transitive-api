@@ -6,8 +6,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.schemas import Token
 from app.security.auth import create_access_token
 from app.security.users import authenticate
+from app.simulation import SimulationRoute, simulation_params_dependency
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(tags=["auth"], route_class=SimulationRoute,
+    dependencies=[Depends(simulation_params_dependency)],
+)
 
 
 @router.post("/login", response_model=Token)

@@ -21,8 +21,11 @@ from app.schemas import (
 from app.schemas.pagination import PageParams
 from app.security.auth import get_current_user
 from app.services.rates import get_rates_summary
+from app.simulation import SimulationRoute, simulation_params_dependency
 
-router = APIRouter(prefix="/albums/{album_id}/musics", tags=["musics"])
+router = APIRouter(prefix="/albums/{album_id}/musics", tags=["musics"], route_class=SimulationRoute,
+    dependencies=[Depends(simulation_params_dependency)],
+)
 
 
 async def get_music_or_404(

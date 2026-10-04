@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from app.db import dispose_engine
 from app.routers import albums, auth, musics, setup
 from app.services.seed import ensure_seeded
+from app.simulation.handlers import register_error_handlers
 
 
 @asynccontextmanager
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(albums.router)
     app.include_router(musics.router)
     app.include_router(setup.router)
+    register_error_handlers(app)
 
     @app.get("/", include_in_schema=False)
     async def root() -> RedirectResponse:

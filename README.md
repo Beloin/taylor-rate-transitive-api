@@ -89,6 +89,109 @@ GET  /setup/cert
 
 Randomize should also use `data/randomize_rates` that should contain a lot of json files that should be a generic description for each music and album to allow better testing.
 
+## Error simulation
+
+Configured using global query params (all optional, applied to any endpoint):
+
+```
+?transitiveErrors=true/false          // false by default
+&errorProb=0.1~1                      // 0 by default (0% chance)
+&explicityError=ERROR_KIND_ENUM      // no default
+&latencyProb=0.1~1                    // 0 by default
+&latencyMs=123                        // 1000 by default
+&malformedProb=0.1~1                  // 0 by default
+&malformedSeed=123                    // -1 by default, -1 = random
+```
+
+### Two kinds of errors
+
+- **Injected errors** ("ours"): deliberately created by the simulation layer.
+- **Organic errors** ("not ours"): real API failures (404, 401, 422, DB down, ...).
+
+Both use the SAME common error body. The ONLY discriminator is the
+`x-taylor-api-error: ERROR_KIND_ENUM` header: present iff the error was injected
+(never present on organic errors). Outside world must treat both the same,
+and use the header to know it was a simulated one.
+
+### Error Kinds
+
+```
+{
+  RATE_LIMIT                  // this error is BEFORE service call
+  API_IS_NOT_AVAILABLE        // this error is BEFORE service call
+  UKNOWN_ERROR                // this error is AFTER service call
+  INTERNAL_ERROR              // this error is AFTER service call
+  I_AM_NOT_TAYLOR_ERROR       // this error is AFTER service call
+  MALFORMED_RESPONSE          // this error is AFTER service call
+}
+```
+
+### Status code mapping
+
+| Error kind            | HTTP status             | Extra headers                 |
+|-----------------------|-------------------------|-------------------------------|
+| RATE_LIMIT            | 429 Too Many Requests   | Retry-After: 5                |
+| API_IS_NOT_AVAILABLE  | 503 Service Unavailable | -                             |
+| UKNOWN_ERROR          | 500 Internal Server Error | -                           |
+| INTERNAL_ERROR        | 500 Internal Server Error | -                           |
+| I_AM_NOT_TAYLOR_ERROR | 403 Forbidden           | -                             |
+| MALFORMED_RESPONSE    | 200 OK                  | x-taylor-api-error set        |
+
+MALFORMED_RESPONSE keeps 200 but the response body has a random mutation
+(field dropped, type changed, value corrupted), so clients can test their
+model validation.
+
+### Common error body
+
+Every error (injected AND organic) must return this body:
+
+```json
+{
+  "kind": "ERROR_KIND_ENUM or ORGANIC_ERROR",
+  "message": "human readable",
+  "request_id": "uuid",
+  "timestamp": "ISO-8601"
+}
+```
+
+For organic errors FastAPI's default handlers (404/401/422/500) are overridden
+by a global exception handler normalizing into this body. `kind` is
+`ORGANIC_ERROR` when not a simulated error.
+
+### Semantics
+
+- `explicityError`: pins the error KIND, but does not force an error on its
+  own - the `errorProb` roll is still what decides whether the error fires.
+- `errorProb`: probability [0,1] that a request errors. When it hits, the kind
+  is `explicityError` if set, otherwise picked at random (uniform) among the
+  5 error kinds (MALFORMED_RESPONSE only when triggered by `malformedProb`).
+- BEFORE service call: the controller is never called, no side effects.
+- AFTER service call: the controller runs fully (side effects committed),
+  then the error is returned. This is intentional to test client retry and
+  idempotency handling.
+- `transitiveErrors=true`: enables transitive (propagating) error kinds.
+  Purely a per-request gate: it never triggers errors by itself and holds
+  no state between requests. Whether an error fires is decided per request
+  by the `errorProb` roll.
+- Precedence: RATE_LIMIT > API_IS_NOT_AVAILABLE (BEFORE kinds) >
+  UKNOWN_ERROR > INTERNAL_ERROR > I_AM_NOT_TAYLOR_ERROR (AFTER kinds).
+  Within the same group a kind is picked at random.
+- Precedence vs explicit: when both `errorProb` and `explicityError` are set,
+  the roll uses `errorProb` and the kind is `explicityError`.
+### Error Injection
+
+Latency Injection: `latencyProb` chance of delaying the request by `latencyMs`
+milliseconds. Applied BEFORE the controller runs. Latency never turns into
+an error by itself, it only delays.
+
+Malformed Response: `malformedProb` chance of mutating a 2xx JSON response.
+Mutation kinds: drop a field, change field type, corrupt a field value.
+Seedable with `malformedSeed` for reproducible mutations.
+
+When an error is deliberately created, we need a header "x-taylor-api-error: ERROR_ENUM_NAME".
+
+To implement this we will have decorators on each controller method,
+
 ## Implementation
 
 Everything should be docker and docker-compose.

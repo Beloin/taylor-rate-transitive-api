@@ -13,8 +13,11 @@ from app.schemas import (
 from app.security.auth import get_current_user
 from app.security.cert import cert_paths
 from app.services.rates import randomize_rates, reset_rates
+from app.simulation import SimulationRoute, simulation_params_dependency
 
-router = APIRouter(prefix="/setup", tags=["setup"])
+router = APIRouter(prefix="/setup", tags=["setup"], route_class=SimulationRoute,
+    dependencies=[Depends(simulation_params_dependency)],
+)
 
 
 @router.post("/reset-rates", response_model=ResetRatesResponse)
