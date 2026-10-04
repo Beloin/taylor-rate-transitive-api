@@ -178,6 +178,7 @@ by a global exception handler normalizing into this body. `kind` is
   Within the same group a kind is picked at random.
 - Precedence vs explicit: when both `errorProb` and `explicityError` are set,
   the roll uses `errorProb` and the kind is `explicityError`.
+
 ### Error Injection
 
 Latency Injection: `latencyProb` chance of delaying the request by `latencyMs`
@@ -191,6 +192,57 @@ Seedable with `malformedSeed` for reproducible mutations.
 When an error is deliberately created, we need a header "x-taylor-api-error: ERROR_ENUM_NAME".
 
 To implement this we will have decorators on each controller method,
+
+### Client Usage
+
+How an outside API/client should handle each injected error kind. The key
+signal is the error KIND (in the common body and the `x-taylor-api-error`
+header); the HTTP status is secondary.
+
+#### 1. Errors known to happen BEFORE any real service call
+
+`RATE_LIMIT` (429) and `API_IS_NOT_AVAILABLE` (503): nothing was processed,
+no side effects, so it is ALWAYS safe to retry.
+
+- Retry with **exponential backoff + jitter** (e.g. base 100ms, x2 each
+  attempt, cap ~30s, full jitter), respecting `Retry-After` on 429.
+- These are "fail fast, retry later" errors - the server did zero work.
+
+#### 2. Errors that MAY have inserted a state change
+
+`UKNOWN_ERROR`, `INTERNAL_ERROR`, `I_AM_NOT_TAYLOR_ERROR` (403/500) fire
+AFTER the service ran, so a POST/PUT may have actually been applied even
+though you got an error back.
+
+- **Do NOT blindly retry** - a retry can create duplicates.
+- **Idempotency**: make writes idempotent (client-generated idempotency key
+  sent via header/body; server dedupes). Then a retry is safe.
+- **Check before create/update**: before a POST, GET the resource (or a
+  `HEAD`/existence check) to see if your write already landed; before a PUT,
+  read the current state and only mutate the diff you intended.
+- **Reconcile on uncertainty**: after an ambiguous error, fetch the target
+  and compare with your intent (did the rate/album change?), then decide
+  to retry, update, or do nothing.
+- **Timeout + bounded retries**: only retry a finite number of times with
+  backoff, and treat a persistent 5xx as "give up + report" rather than
+  hammering.
+
+#### 3. Malformed responses
+
+`MALFORMED_RESPONSE` returns 200 with a corrupted body.
+
+- Validate response schemas on the client and treat a failed parse as a
+  retryable/soft error, never crash on unexpected field types.
+- Use a lenient decoder (ignore unknown fields, coerce or reject wrong
+  types) and fall back gracefully.
+
+#### 4. General
+
+- Use the `x-taylor-api-error` header to distinguish a *simulated* error
+  from a *real* one during testing - the handling logic stays the same, the
+  header only tells you it was injected.
+- Log the `request_id` from every error body to correlate client-side
+  failures with server logs.
 
 ## Implementation
 
